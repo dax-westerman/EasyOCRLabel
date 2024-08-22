@@ -164,4 +164,5 @@ images/
 models/model
 logs/
 *.jpg
-.DS_Store
+.DS_Storeenvs/ 
+envs/
