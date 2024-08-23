@@ -1,5 +1,13 @@
 # EasyOCRLabel
 
+**Notes**
+
+```shell
+pip3 install torch torchvision torchaudio
+pip3 install -r requirements.txt
+
+```
+
 EasyOCRLabel is a semi-automatic graphic annotation tool suitable for OCR field, with built-in EasyOCR model to automatically detect and re-recognize data. It is written in Python3 and PyQT5, supporting rectangular box, table, irregular text and key information annotation modes. Annotations can be directly used for the training of EasyOCR detection and recognition models.
 
 |                 regular text annotation                 |                  table annotation                  |
