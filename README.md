@@ -3,8 +3,8 @@
 **Notes**
 
 ```shell
-pip3 install torch torchvision torchaudio
-pip3 install -r requirements.txt
+pip install torch torchvision torchaudio
+pip install -r requirements.txt
 
 ```
 
