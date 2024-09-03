@@ -167,3 +167,5 @@ logs/
 .DS_Store
 envs/
 .files/easy_ocr_label_env.tar.gz
+
+.easy_ocr_venv
