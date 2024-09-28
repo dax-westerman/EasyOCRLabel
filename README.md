@@ -167,3 +167,8 @@ For some data that are difficult to recognize, the recognition results will not 
 
 1. [Tzutalin. LabelImg. Git code (2015)](https://github.com/tzutalin/labelImg)
 2. [Evezerest. PPOCRLabel. Git code (2022)](https://github.com/Evezerest/PPOCRLabel)
+
+
+conda activate E:\NLP_Applications\nlpssc\EasyOCRLabel\.easy_ocr_venv
+python PPOCRLabel.py
+\\r04.med.va.gov\v01\WHC\Research\Research\Amy Justice Research\Projects\REG\FRAC-HIV R01\OCR

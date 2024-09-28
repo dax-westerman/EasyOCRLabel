@@ -13,7 +13,6 @@
 
 import pickle
 import os
-import sys
 
 
 class Settings(object):
@@ -48,7 +47,7 @@ class Settings(object):
                 with open(self.path, 'rb') as f:
                     self.data = pickle.load(f)
                     return True
-        except:
+        except:  # noqa: E722            
             print('Loading setting failed')
         return False
 

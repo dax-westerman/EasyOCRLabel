@@ -16,7 +16,8 @@ import math
 import sys
 
 from PyQt5.QtCore import QPointF
-from PyQt5.QtGui import QColor, QPen, QPainterPath, QFont
+from PyQt5.QtGui import QColor, QFont, QPainterPath, QPen
+
 from libs.utils import distance
 
 DEFAULT_LINE_COLOR = QColor(0, 255, 0, 128)
@@ -46,9 +47,17 @@ class Shape(object):
     point_size = 8
     scale = 1.0
 
-    def __init__(self, label=None, line_color=None, difficult=False, key_cls="None", paintLabel=False, paintIdx=False):
+    def __init__(
+        self,
+        label=None,
+        line_color=None,
+        difficult=False,
+        key_cls="None",
+        paintLabel=False,
+        paintIdx=False,
+    ):
         self.label = label
-        self.idx = None # bbox order, only for table annotation
+        self.idx = None  # bbox order, only for table annotation
         self.points = []
         self.fill = False
         self.selected = False
@@ -87,13 +96,15 @@ class Shape(object):
         cosTheta = math.cos(theta)
         sinTheta = math.sin(theta)
         pResx = cosTheta * order.x() + sinTheta * order.y()
-        pResy = - sinTheta * order.x() + cosTheta * order.y()
+        pResy = -sinTheta * order.x() + cosTheta * order.y()
         pRes = QPointF(self.center.x() + pResx, self.center.y() + pResy)
         return pRes
 
     def close(self):
-        self.center = QPointF((self.points[0].x() + self.points[2].x()) / 2,
-                              (self.points[0].y() + self.points[2].y()) / 2)
+        self.center = QPointF(
+            (self.points[0].x() + self.points[2].x()) / 2,
+            (self.points[0].y() + self.points[2].y()) / 2,
+        )
         self._closed = True
 
     def reachMaxPoints(self):
@@ -178,8 +189,8 @@ class Shape(object):
                     font.setPointSize(self.fontsize)
                     font.setBold(True)
                     painter.setFont(font)
-                    text = ''
-                    if self.idx != None:
+                    text = ""
+                    if self.idx is not None:
                         text = str(self.idx)
                     if min_y < MIN_Y_LABEL:
                         min_y += MIN_Y_LABEL
@@ -261,4 +272,5 @@ class Shape(object):
         return self.points[key]
 
     def __setitem__(self, key, value):
+        self.points[key] = value
         self.points[key] = value
