@@ -166,3 +166,4 @@ logs/
 *.jpg
 .DS_Store
 .easy_ocr_venv
+environment_parts/
