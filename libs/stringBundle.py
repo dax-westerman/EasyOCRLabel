@@ -1,37 +1,19 @@
-# Copyright (c) <2015-Present> Tzutalin
-# Copyright (C) 2013  MIT, Computer Science and Artificial Intelligence Laboratory. Bryan Russell, Antonio Torralba,
-# William T. Freeman. Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-# associated documentation files (the "Software"), to deal in the Software without restriction, including without
-# limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
-# Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-# the Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
-# NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
-# SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
-# CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-# THE SOFTWARE.
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 
 import locale
 import os
-
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 import re
-import sys
+
 
 from libs.ustr import ustr
 
 __dir__ = os.path.dirname(os.path.abspath(__file__))  # 获取本程序文件路径
 __dirpath__ = os.path.abspath(os.path.join(__dir__, "../resources/strings"))
 
-try:
-    from PyQt5.QtCore import *
-except ImportError:
-    if sys.version_info.major >= 3:
-        import sip
 
-        sip.setapi("QVariant", 2)
-    from PyQt4.QtCore import *
+from PyQt5.QtCore import QIODevice, QFile, QTextStream
 
 
 class StringBundle:
@@ -56,8 +38,8 @@ class StringBundle:
                     if locale.getlocale() and len(locale.getlocale()) > 0
                     else os.getenv("LANG")
                 )
-            except:  # noqa: E722                
-                print('Invalid locale')
+            except:  # noqa: E722
+                print("Invalid locale")
                 localeStr = "en"
 
         return StringBundle(cls.__create_key, localeStr)
@@ -84,7 +66,7 @@ class StringBundle:
         PROP_SEPERATOR = "="
         f = QFile(path)
         if f.exists():
-            if f.open(QIODevice.ReadOnly | QFile.Text):
+            if f.open(QIODevice.OpenModeFlag.ReadOnly | QFile.OpenModeFlag.Text):  # type: ignore
                 text = QTextStream(f)
                 text.setCodec("UTF-8")
 
@@ -97,3 +79,17 @@ class StringBundle:
 
             f.close()
             f.close()
+
+
+# Copyright (c) <2015-Present> Tzutalin
+# Copyright (C) 2013  MIT, Computer Science and Artificial Intelligence Laboratory. Bryan Russell, Antonio Torralba,
+# William T. Freeman. Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+# associated documentation files (the "Software"), to deal in the Software without restriction, including without
+# limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+# Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+# the Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+# NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+# SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+# CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.

@@ -165,4 +165,6 @@ models/model
 logs/
 *.jpg
 .DS_Store
-.easy_ocr_venv
+.easy_ocr_venv*
+_transfer_docs/
+/_transfer_docs

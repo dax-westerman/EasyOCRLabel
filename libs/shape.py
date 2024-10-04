@@ -1,19 +1,8 @@
-# Copyright (c) <2015-Present> Tzutalin
-# Copyright (C) 2013  MIT, Computer Science and Artificial Intelligence Laboratory. Bryan Russell, Antonio Torralba,
-# William T. Freeman. Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-# associated documentation files (the "Software"), to deal in the Software without restriction, including without
-# limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
-# Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-# the Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
-# NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
-# SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
-# CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-# THE SOFTWARE.
 # !/usr/bin/python
 # -*- coding: utf-8 -*-
 import math
 import sys
+from typing import Optional
 
 from PyQt5.QtCore import QPointF
 from PyQt5.QtGui import QColor, QFont, QPainterPath, QPen
@@ -57,7 +46,7 @@ class Shape(object):
         paintIdx=False,
     ):
         self.label = label
-        self.idx = None  # bbox order, only for table annotation
+        self.idx: Optional[int] = None  # bbox order, only for table annotation
         self.points = []
         self.fill = False
         self.selected = False
@@ -97,6 +86,7 @@ class Shape(object):
         sinTheta = math.sin(theta)
         pResx = cosTheta * order.x() + sinTheta * order.y()
         pResy = -sinTheta * order.x() + cosTheta * order.y()
+        assert self.center is not None
         pRes = QPointF(self.center.x() + pResx, self.center.y() + pResy)
         return pRes
 
@@ -274,3 +264,17 @@ class Shape(object):
     def __setitem__(self, key, value):
         self.points[key] = value
         self.points[key] = value
+
+
+# Copyright (c) <2015-Present> Tzutalin
+# Copyright (C) 2013  MIT, Computer Science and Artificial Intelligence Laboratory. Bryan Russell, Antonio Torralba,
+# William T. Freeman. Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+# associated documentation files (the "Software"), to deal in the Software without restriction, including without
+# limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+# Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+# the Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+# NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+# SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+# CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.

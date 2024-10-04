@@ -1,4 +1,5 @@
 import re
+from typing import Optional
 
 from PyQt5 import QtCore
 from PyQt5 import QtGui
@@ -6,7 +7,7 @@ from PyQt5 import QtWidgets
 from PyQt5.Qt import QT_VERSION_STR
 from libs.utils import newIcon, labelValidator
 
-QT5 = QT_VERSION_STR[0] == '5'
+QT5 = QT_VERSION_STR[0] == "5"
 
 
 # TODO(unknown):
@@ -18,7 +19,7 @@ class KeyQLineEdit(QtWidgets.QLineEdit):
         self.list_widget = list_widget
 
     def keyPressEvent(self, e):
-        if e.key() in [QtCore.Qt.Key_Up, QtCore.Qt.Key_Down]:
+        if e.key() in [QtCore.Qt.Key.Key_Up, QtCore.Qt.Key.Key_Down]:
             self.list_widget.keyPressEvent(e)
         else:
             super(KeyQLineEdit, self).keyPressEvent(e)
@@ -26,15 +27,15 @@ class KeyQLineEdit(QtWidgets.QLineEdit):
 
 class KeyDialog(QtWidgets.QDialog):
     def __init__(
-            self,
-            text="Enter object label",
-            parent=None,
-            labels=None,
-            sort_labels=True,
-            show_text_field=True,
-            completion="startswith",
-            fit_to_content=None,
-            flags=None,
+        self,
+        text="Enter object label",
+        parent=None,
+        labels=None,
+        sort_labels=True,
+        show_text_field=True,
+        completion="startswith",
+        fit_to_content=None,
+        flags=None,
     ):
         if fit_to_content is None:
             fit_to_content = {"row": False, "column": True}
@@ -56,11 +57,11 @@ class KeyDialog(QtWidgets.QDialog):
         # buttons
         self.buttonBox = bb = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
-            QtCore.Qt.Horizontal,
+            QtCore.Qt.Orientation.Horizontal,
             self,
         )
-        bb.button(bb.Ok).setIcon(newIcon("done"))
-        bb.button(bb.Cancel).setIcon(newIcon("undo"))
+        bb.button(bb.Ok).setIcon(newIcon("done"))  # type: ignore
+        bb.button(bb.Cancel).setIcon(newIcon("undo"))  # type: ignore
         bb.accepted.connect(self.validate)
         bb.rejected.connect(self.reject)
         layout.addWidget(bb)
@@ -68,11 +69,11 @@ class KeyDialog(QtWidgets.QDialog):
         self.labelList = QtWidgets.QListWidget()
         if self._fit_to_content["row"]:
             self.labelList.setHorizontalScrollBarPolicy(
-                QtCore.Qt.ScrollBarAlwaysOff
+                QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff
             )
         if self._fit_to_content["column"]:
             self.labelList.setVerticalScrollBarPolicy(
-                QtCore.Qt.ScrollBarAlwaysOff
+                QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff
             )
         self._sort_labels = sort_labels
         if labels:
@@ -80,9 +81,7 @@ class KeyDialog(QtWidgets.QDialog):
         if self._sort_labels:
             self.labelList.sortItems()
         else:
-            self.labelList.setDragDropMode(
-                QtWidgets.QAbstractItemView.InternalMove
-            )
+            self.labelList.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
         self.labelList.currentItemChanged.connect(self.labelSelected)
         self.labelList.itemDoubleClicked.connect(self.labelDoubleClicked)
         self.edit.setListWidget(self.labelList)
@@ -101,19 +100,23 @@ class KeyDialog(QtWidgets.QDialog):
         if not QT5 and completion != "startswith":
             completion = "startswith"
         if completion == "startswith":
-            completer.setCompletionMode(QtWidgets.QCompleter.InlineCompletion)
+            completer.setCompletionMode(
+                QtWidgets.QCompleter.CompletionMode.InlineCompletion
+            )
             # Default settings.
             # completer.setFilterMode(QtCore.Qt.MatchStartsWith)
         elif completion == "contains":
-            completer.setCompletionMode(QtWidgets.QCompleter.PopupCompletion)
-            completer.setFilterMode(QtCore.Qt.MatchContains)
+            completer.setCompletionMode(
+                QtWidgets.QCompleter.CompletionMode.PopupCompletion
+            )
+            completer.setFilterMode(QtCore.Qt.MatchFlag.MatchContains)
         else:
             raise ValueError("Unsupported completion: {}".format(completion))
         completer.setModel(self.labelList.model())
         self.edit.setCompleter(completer)
 
     def addLabelHistory(self, label):
-        if self.labelList.findItems(label, QtCore.Qt.MatchExactly):
+        if self.labelList.findItems(label, QtCore.Qt.MatchFlag.MatchExactly):
             return
         self.labelList.addItem(label)
         if self._sort_labels:
@@ -124,10 +127,11 @@ class KeyDialog(QtWidgets.QDialog):
 
     def validate(self):
         text = self.edit.text()
-        if hasattr(text, "strip"):
-            text = text.strip()
-        else:
-            text = text.trimmed()
+        # if hasattr(text, "strip"):
+        #     text = text.strip()
+        # else:
+        #     text = text.trimmed()
+        text = text.strip()
         if text:
             self.accept()
 
@@ -136,10 +140,11 @@ class KeyDialog(QtWidgets.QDialog):
 
     def postProcess(self):
         text = self.edit.text()
-        if hasattr(text, "strip"):
-            text = text.strip()
-        else:
-            text = text.trimmed()
+        # if hasattr(text, "strip"):
+        #     text = text.strip()
+        # else:
+        #     text = text.trimmed()
+        text = text.strip()
         self.edit.setText(text)
 
     def updateFlags(self, label_new):
@@ -155,7 +160,10 @@ class KeyDialog(QtWidgets.QDialog):
 
     def deleteFlags(self):
         for i in reversed(range(self.flagsLayout.count())):
-            item = self.flagsLayout.itemAt(i).widget()
+            item_: Optional[QtWidgets.QLayoutItem] = self.flagsLayout.itemAt(i)
+            assert item_ is not None
+            item: Optional[QtWidgets.QWidget] = item_.widget()
+            assert item is not None
             self.flagsLayout.removeWidget(item)
             item.setParent(None)
 
@@ -178,7 +186,10 @@ class KeyDialog(QtWidgets.QDialog):
     def getFlags(self):
         flags = {}
         for i in range(self.flagsLayout.count()):
-            item = self.flagsLayout.itemAt(i).widget()
+            layout_item: Optional[QtWidgets.QLayoutItem] = self.flagsLayout.itemAt(i)
+            assert layout_item is not None
+            item: Optional[QtWidgets.QWidget] = layout_item.widget()
+            assert item is not None
             flags[item.text()] = item.isChecked()
         return flags
 
@@ -188,9 +199,7 @@ class KeyDialog(QtWidgets.QDialog):
                 self.labelList.sizeHintForRow(0) * self.labelList.count() + 2
             )
         if self._fit_to_content["column"]:
-            self.labelList.setMinimumWidth(
-                self.labelList.sizeHintForColumn(0) + 2
-            )
+            self.labelList.setMinimumWidth(self.labelList.sizeHintForColumn(0) + 2)
         # if text is None, the previous label in self.edit is kept
         if text is None:
             text = self.edit.text()
@@ -201,13 +210,15 @@ class KeyDialog(QtWidgets.QDialog):
         self.edit.setText(text)
         self.edit.setSelection(0, len(text))
 
-        items = self.labelList.findItems(text, QtCore.Qt.MatchFixedString)
+        items = self.labelList.findItems(text, QtCore.Qt.MatchFlag.MatchFixedString)
         if items:
             if len(items) != 1:
                 self.labelList.setCurrentItem(items[0])
             row = self.labelList.row(items[0])
-            self.edit.completer().setCurrentRow(row)
-        self.edit.setFocus(QtCore.Qt.PopupFocusReason)
+            completer_: Optional[QtWidgets.QCompleter] = self.edit.completer()
+            assert completer_ is not None
+            completer_.setCurrentRow(row)
+        self.edit.setFocus(QtCore.Qt.FocusReason.PopupFocusReason)
         if move:
             self.move(QtGui.QCursor.pos())
         if self.exec_():

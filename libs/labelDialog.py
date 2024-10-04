@@ -1,24 +1,15 @@
-# Copyright (c) <2015-Present> Tzutalin
-# Copyright (C) 2013  MIT, Computer Science and Artificial Intelligence Laboratory. Bryan Russell, Antonio Torralba,
-# William T. Freeman. Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-# associated documentation files (the "Software"), to deal in the Software without restriction, including without
-# limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
-# Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-# the Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
-# NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
-# SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
-# CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-# THE SOFTWARE.
-try:
-    from PyQt5.QtGui import *
-    from PyQt5.QtCore import *
-    from PyQt5.QtWidgets import *
-except ImportError:
-    from PyQt4.QtGui import *
-    from PyQt4.QtCore import *
+from PyQt5.QtGui import QCursor
+from PyQt5.QtCore import QStringListModel, Qt, QPoint
+from PyQt5.QtWidgets import (
+    QLineEdit,
+    QCompleter,
+    QDialogButtonBox,
+    QDialog,
+    QVBoxLayout,
+)
 
-from libs.utils import newIcon, labelValidator
+
+from libs.utils import newIcon
 
 BB = QDialogButtonBox
 
@@ -35,6 +26,7 @@ class LabelDialog(QDialog):
         self.edit.editingFinished.connect(self.postProcess)
 
         model = QStringListModel()
+        assert listItem is not None
         model.setStringList(listItem)
         completer = QCompleter()
         completer.setModel(model)
@@ -42,9 +34,9 @@ class LabelDialog(QDialog):
 
         layout = QVBoxLayout()
         layout.addWidget(self.edit)
-        self.buttonBox = bb = BB(BB.Ok | BB.Cancel, Qt.Horizontal, self)
-        bb.button(BB.Ok).setIcon(newIcon('done'))
-        bb.button(BB.Cancel).setIcon(newIcon('undo'))
+        self.buttonBox = bb = BB(BB.Ok | BB.Cancel, Qt.Orientation.Horizontal, self)
+        bb.button(BB.Ok).setIcon(newIcon("done"))  # type: ignore
+        bb.button(BB.Cancel).setIcon(newIcon("undo"))  # type: ignore
         bb.accepted.connect(self.validate)
         bb.rejected.connect(self.reject)
         layout.addWidget(bb)
@@ -60,33 +52,33 @@ class LabelDialog(QDialog):
         self.setLayout(layout)
 
     def validate(self):
-        try:
-            if self.edit.text().trimmed():
-                self.accept()
-        except AttributeError:
-            # PyQt5: AttributeError: 'str' object has no attribute 'trimmed'
-            if self.edit.text().strip():
-                self.accept()
+        if self.edit.text().strip():
+            self.accept()
 
     def postProcess(self):
-        try:
-            self.edit.setText(self.edit.text().trimmed())
-            # print(self.edit.text())
-        except AttributeError:
-            # PyQt5: AttributeError: 'str' object has no attribute 'trimmed'
-            self.edit.setText(self.edit.text())
-            print(self.edit.text())
+        self.edit.setText(self.edit.text().strip())
+        print(self.edit.text())
 
-    def popUp(self, text='', move=True):
+    def popUp(self, text="", move=True):
         self.edit.setText(text)
         self.edit.setSelection(0, len(text))
-        self.edit.setFocus(Qt.PopupFocusReason)
+        self.edit.setFocus(Qt.FocusReason.PopupFocusReason)
         if move:
             cursor_pos = QCursor.pos()
-            parent_bottomRight = self.parentWidget().geometry()
-            max_x = parent_bottomRight.x() + parent_bottomRight.width() - self.sizeHint().width()
-            max_y = parent_bottomRight.y() + parent_bottomRight.height() - self.sizeHint().height()
-            max_global = self.parentWidget().mapToGlobal(QPoint(max_x, max_y))
+            parent_widget_ = self.parentWidget()
+            assert parent_widget_ is not None
+            parent_bottomRight = parent_widget_.geometry()
+            max_x = (
+                parent_bottomRight.x()
+                + parent_bottomRight.width()
+                - self.sizeHint().width()
+            )
+            max_y = (
+                parent_bottomRight.y()
+                + parent_bottomRight.height()
+                - self.sizeHint().height()
+            )
+            max_global = parent_widget_.mapToGlobal(QPoint(max_x, max_y))
             if cursor_pos.x() > max_global.x():
                 cursor_pos.setX(max_global.x())
             if cursor_pos.y() > max_global.y():
@@ -105,3 +97,17 @@ class LabelDialog(QDialog):
     def listItemDoubleClick(self, tQListWidgetItem):
         self.listItemClick(tQListWidgetItem)
         self.validate()
+
+
+# Copyright (c) <2015-Present> Tzutalin
+# Copyright (C) 2013  MIT, Computer Science and Artificial Intelligence Laboratory. Bryan Russell, Antonio Torralba,
+# William T. Freeman. Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+# associated documentation files (the "Software"), to deal in the Software without restriction, including without
+# limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+# Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+# the Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+# NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+# SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+# CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.

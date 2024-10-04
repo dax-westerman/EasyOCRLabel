@@ -6,12 +6,14 @@ import platform
 import subprocess
 import sys
 from functools import partial
+from typing import Optional
 
 import cv2
 import easyocr
 import numpy as np
 import xlrd
 from PyQt5.QtCore import (
+    QAbstractItemModel,
     QByteArray,
     QFileInfo,
     QPoint,
@@ -39,6 +41,7 @@ from PyQt5.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QScrollArea,
+    QScrollBar,
     QSlider,
     QToolButton,
     QVBoxLayout,
@@ -51,7 +54,21 @@ from libs.canvas import Canvas
 from libs.colorDialog import ColorDialog
 
 # from paddleocr import PaddleOCR, PPStructure
-from libs.constants import SETTING_DRAW_SQUARE
+from libs.constants import (
+    SETTING_DRAW_SQUARE,
+    SETTING_FILL_COLOR,
+    SETTING_ADVANCE_MODE,
+    SETTING_FILENAME,
+    SETTING_LAST_OPEN_DIR,
+    SETTING_LINE_COLOR,
+    SETTING_PAINT_INDEX,
+    SETTING_PAINT_LABEL,
+    SETTING_RECENT_FILES,
+    SETTING_SAVE_DIR,
+    SETTING_WIN_POSE,
+    SETTING_WIN_SIZE,
+    SETTING_WIN_STATE,
+)
 from libs.editinlist import EditInList
 from libs.hashableQListWidgetItem import HashableQListWidgetItem
 from libs.keyDialog import KeyDialog
@@ -63,18 +80,6 @@ from libs.stringBundle import StringBundle
 from libs.unique_label_qlist_widget import UniqueLabelQListWidget
 from libs.ustr import ustr
 from libs.utils import (
-    SETTING_ADVANCE_MODE,
-    SETTING_FILENAME,
-    SETTING_FILL_COLOR,
-    SETTING_LAST_OPEN_DIR,
-    SETTING_LINE_COLOR,
-    SETTING_PAINT_INDEX,
-    SETTING_PAINT_LABEL,
-    SETTING_RECENT_FILES,
-    SETTING_SAVE_DIR,
-    SETTING_WIN_POSE,
-    SETTING_WIN_SIZE,
-    SETTING_WIN_STATE,
     QAction,
     QColor,
     QIcon,
@@ -123,7 +128,7 @@ class MainWindow(QMainWindow):
     ):
         super(MainWindow, self).__init__()
         self.setWindowTitle(__appname__)
-        self.setWindowState(Qt.WindowMaximized)  # set window max
+        self.setWindowState(Qt.WindowState.WindowMaximized)  # set window max
         self.activateWindow()  # PPOCRLabel goes to the front when activate
 
         # Load setting in the main thread
@@ -214,7 +219,7 @@ class MainWindow(QMainWindow):
         self.fileDock = QDockWidget(self.fileListName, self)
         self.fileDock.setObjectName(getStr("files"))
         self.fileDock.setWidget(fileListContainer)
-        self.addDockWidget(Qt.LeftDockWidgetArea, self.fileDock)
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.fileDock)
 
         #  ================== Key List  ==================
         if self.kie_mode:
@@ -233,7 +238,9 @@ class MainWindow(QMainWindow):
             filelistLayout.addWidget(self.keyListDock)
 
         self.AutoRecognition = QToolButton()
-        self.AutoRecognition.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.AutoRecognition.setToolButtonStyle(
+            Qt.ToolButtonStyle.ToolButtonTextBesideIcon
+        )
         self.AutoRecognition.setIcon(newIcon("Auto"))
         autoRecLayout = QHBoxLayout()
         autoRecLayout.setContentsMargins(0, 0, 0, 0)
@@ -250,20 +257,26 @@ class MainWindow(QMainWindow):
         self.editButton = QToolButton()
         self.reRecogButton = QToolButton()
         self.reRecogButton.setIcon(newIcon("reRec", 30))
-        self.reRecogButton.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.reRecogButton.setToolButtonStyle(
+            Qt.ToolButtonStyle.ToolButtonTextBesideIcon
+        )
 
         self.tableRecButton = QToolButton()
-        self.tableRecButton.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.tableRecButton.setToolButtonStyle(
+            Qt.ToolButtonStyle.ToolButtonTextBesideIcon
+        )
 
         self.newButton = QToolButton()
-        self.newButton.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.newButton.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         self.createpolyButton = QToolButton()
-        self.createpolyButton.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.createpolyButton.setToolButtonStyle(
+            Qt.ToolButtonStyle.ToolButtonTextBesideIcon
+        )
 
         self.SaveButton = QToolButton()
-        self.SaveButton.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.SaveButton.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         self.DelButton = QToolButton()
-        self.DelButton.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.DelButton.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
 
         leftTopToolBox = QGridLayout()
         leftTopToolBox.addWidget(self.newButton, 0, 0, 1, 1)
@@ -284,7 +297,7 @@ class MainWindow(QMainWindow):
         self.indexList.setEditTriggers(QAbstractItemView.NoEditTriggers)  # no editable
         self.indexList.itemSelectionChanged.connect(self.indexSelectionChanged)
         self.indexList.setVerticalScrollBarPolicy(
-            Qt.ScrollBarAlwaysOff
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
         )  # no scroll Bar
         self.indexListDock = QDockWidget("No.", self)
         self.indexListDock.setWidget(self.indexList)
@@ -322,15 +335,19 @@ class MainWindow(QMainWindow):
         # 设置拖放模式为移动项目，如果不设置，默认为复制项目
         self.labelList.setDragDropMode(QAbstractItemView.InternalMove)
         # 触发放置
-        self.labelList.model().rowsMoved.connect(self.drag_drop_happened)
+        label_list_model: Optional[QAbstractItemModel] = self.labelList.model()
+        assert label_list_model is not None
+        label_list_model.rowsMoved.connect(self.drag_drop_happened)
 
         labelIndexListContainer = QWidget()
         labelIndexListContainer.setLayout(labelIndexListlBox)
         listLayout.addWidget(labelIndexListContainer)
 
         # labelList indexList同步滚动
-        self.labelListBar = self.labelList.verticalScrollBar()
-        self.indexListBar = self.indexList.verticalScrollBar()
+        self.labelListBar: Optional[QScrollBar] = self.labelList.verticalScrollBar()
+        assert self.labelListBar is not None
+        self.indexListBar: Optional[QScrollBar] = self.indexList.verticalScrollBar()
+        assert self.indexListBar is not None
 
         self.labelListBar.valueChanged.connect(self.move_scrollbar)
         self.indexListBar.valueChanged.connect(self.move_scrollbar)
@@ -362,7 +379,7 @@ class MainWindow(QMainWindow):
         self.dock.setWidget(labelListContainer)
 
         #  ================== Zoom Bar  ==================
-        self.imageSlider = QSlider(Qt.Horizontal)
+        self.imageSlider = QSlider(Qt.Orientation.Horizontal)
         self.imageSlider.valueChanged.connect(self.CanvasSizeChange)
         self.imageSlider.setMinimum(-9)
         self.imageSlider.setMaximum(510)
@@ -379,8 +396,8 @@ class MainWindow(QMainWindow):
         self.imageSliderDock.setObjectName(getStr("IR"))
         self.imageSliderDock.setWidget(self.imageSlider)
         self.imageSliderDock.setFeatures(QDockWidget.DockWidgetFloatable)
-        self.imageSliderDock.setAttribute(Qt.WA_TranslucentBackground)
-        self.addDockWidget(Qt.RightDockWidgetArea, self.imageSliderDock)
+        self.imageSliderDock.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.imageSliderDock)
 
         self.zoomWidget = ZoomWidget()
         self.colorDialog = ColorDialog(parent=self)
@@ -410,7 +427,9 @@ class MainWindow(QMainWindow):
         self.iconlist.setStyleSheet(
             "QListWidget{ background-color:transparent; border: none;}"
         )
-        self.iconlist.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.iconlist.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
         self.nextButton = QToolButton()
         self.nextButton.setIcon(newIcon("next", 40))
         self.nextButton.setIconSize(QSize(40, 100))
@@ -435,8 +454,8 @@ class MainWindow(QMainWindow):
         scroll.setWidget(self.canvas)
         scroll.setWidgetResizable(True)
         self.scrollBars = {
-            Qt.Vertical: scroll.verticalScrollBar(),
-            Qt.Horizontal: scroll.horizontalScrollBar(),
+            Qt.Orientation.Vertical: scroll.verticalScrollBar(),
+            Qt.Orientation.Horizontal: scroll.horizontalScrollBar(),
         }
         self.scrollArea = scroll
         self.canvas.scrollRequest.connect(self.scrollRequest)
@@ -449,12 +468,12 @@ class MainWindow(QMainWindow):
         centerLayout = QVBoxLayout()
         centerLayout.setContentsMargins(0, 0, 0, 0)
         centerLayout.addWidget(scroll)
-        centerLayout.addWidget(iconListContainer, 0, Qt.AlignCenter)
+        centerLayout.addWidget(iconListContainer, 0, Qt.AlignmentFlag.AlignCenter)
         centerContainer = QWidget()
         centerContainer.setLayout(centerLayout)
 
         self.setCentralWidget(centerContainer)
-        self.addDockWidget(Qt.RightDockWidgetArea, self.dock)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.dock)
 
         self.dock.setFeatures(
             QDockWidget.DockWidgetClosable | QDockWidget.DockWidgetFloatable
@@ -820,13 +839,19 @@ class MainWindow(QMainWindow):
         zoomLayout = QHBoxLayout()
         zoomLayout.addStretch()
         self.zoominButton = QToolButton()
-        self.zoominButton.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.zoominButton.setToolButtonStyle(
+            Qt.ToolButtonStyle.ToolButtonTextBesideIcon
+        )
         self.zoominButton.setDefaultAction(zoomIn)
         self.zoomoutButton = QToolButton()
-        self.zoomoutButton.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.zoomoutButton.setToolButtonStyle(
+            Qt.ToolButtonStyle.ToolButtonTextBesideIcon
+        )
         self.zoomoutButton.setDefaultAction(zoomOut)
         self.zoomorgButton = QToolButton()
-        self.zoomorgButton.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.zoomorgButton.setToolButtonStyle(
+            Qt.ToolButtonStyle.ToolButtonTextBesideIcon
+        )
         self.zoomorgButton.setDefaultAction(zoomOrg)
         zoomLayout.addWidget(self.zoominButton)
         zoomLayout.addWidget(self.zoomorgButton)
@@ -1376,7 +1401,7 @@ class MainWindow(QMainWindow):
         if text:
             try:
                 text_list = eval(text)
-            except:  # noqa: E722                
+            except:  # noqa: E722
                 msg_box = QMessageBox(
                     QMessageBox.Warning, "Warning", "Please enter the correct format"
                 )
@@ -1474,8 +1499,8 @@ class MainWindow(QMainWindow):
 
         if self.kie_mode:
             if len(self.canvas.selectedShapes) == 1 and self.keyList.count() > 0:
-                selected_key_item_row = self.keyList.findItemsByLabel(
-                    self.canvas.selectedShapes[0].key_cls, get_row=True
+                selected_key_item_row = self.keyList.findRowIndexByLabel(
+                    self.canvas.selectedShapes[0].key_cls
                 )
                 if (
                     isinstance(selected_key_item_row, list)
@@ -1486,8 +1511,8 @@ class MainWindow(QMainWindow):
                     self.keyList.addItem(item)
                     rgb = self._get_rgb_by_label(key_text, self.kie_mode)
                     self.keyList.setItemLabel(item, key_text, rgb)
-                    selected_key_item_row = self.keyList.findItemsByLabel(
-                        self.canvas.selectedShapes[0].key_cls, get_row=True
+                    selected_key_item_row = self.keyList.findRowIndexByLabel(
+                        self.canvas.selectedShapes[0].key_cls
                     )
 
                 self.keyList.setCurrentRow(selected_key_item_row)
@@ -1674,7 +1699,7 @@ class MainWindow(QMainWindow):
             #                         self.lineColor.getRgb(), self.fillColor.getRgb())
             # print('Image:{0} -> Annotation:{1}'.format(self.filePath, annotationFilePath))
             return True
-        except:  # noqa: E722            
+        except:  # noqa: E722
             self.errorMessage("Error saving label data", "Error saving label data")
             return False
 
@@ -2170,7 +2195,7 @@ class MainWindow(QMainWindow):
             settings.save()
             try:
                 self.saveLabelFile()
-            except:  # noqa: E722                
+            except:  # noqa: E722
                 pass
 
     def loadRecent(self, filename):
@@ -2961,7 +2986,7 @@ class MainWindow(QMainWindow):
         if platform.system() == "Windows":
             try:
                 import win32com.client
-            except:  # noqa: E722                
+            except:  # noqa: E722
                 print(
                     "CANNOT OPEN .xlsx. It could be one of the following reasons: "
                     "Only support Windows | No python win32com"
@@ -2975,7 +3000,7 @@ class MainWindow(QMainWindow):
                 # subprocess.Popen([excelEx, excel_path])
 
                 # os.startfile(excel_path)
-            except:  # noqa: E722                
+            except:  # noqa: E722
                 print(
                     "CANNOT OPEN .xlsx. It could be the following reasons: "
                     ".xlsx is not existed"
@@ -3291,7 +3316,7 @@ class MainWindow(QMainWindow):
             self.autoSaveNum = 1  # Real auto_Save
             try:
                 self.saveLabelFile()
-            except:  # noqa: E722                
+            except:  # noqa: E722
                 pass
             print("The program will automatically save once after confirming an image")
         else:
@@ -3303,7 +3328,10 @@ class MainWindow(QMainWindow):
     def change_box_key(self):
         if not self.kie_mode:
             return
-        key_text, _ = self.keyDialog.popUp(self.key_previous_text)
+        key_dialog = self.keyDialog
+        assert key_dialog is not None
+        assert self.key_previous_text is not None
+        key_text, _ = key_dialog.popUp(self.key_previous_text)
         if key_text is None:
             return
         self.key_previous_text = key_text
@@ -3397,7 +3425,7 @@ def read(filename, default=None):
     try:
         with open(filename, "rb") as f:
             return f.read()
-    except:  # noqa: E722        
+    except:  # noqa: E722
         return default
 
 

@@ -23,18 +23,20 @@
 # THE SOFTWARE.
 
 import copy
+from typing import Iterable, Optional
 
+from PyQt5 import QtCore
 from PyQt5.QtCore import Qt, pyqtSignal, QPointF, QPoint
 from PyQt5.QtGui import QPainter, QBrush, QColor, QPixmap
 from PyQt5.QtWidgets import QWidget, QMenu, QApplication
 from libs.shape import Shape
 from libs.utils import distance
 
-CURSOR_DEFAULT = Qt.ArrowCursor
-CURSOR_POINT = Qt.PointingHandCursor
-CURSOR_DRAW = Qt.CrossCursor
-CURSOR_MOVE = Qt.ClosedHandCursor
-CURSOR_GRAB = Qt.OpenHandCursor
+CURSOR_DEFAULT = Qt.CursorShape.ArrowCursor
+CURSOR_POINT = Qt.CursorShape.PointingHandCursor
+CURSOR_DRAW = Qt.CursorShape.CrossCursor
+CURSOR_MOVE = Qt.CursorShape.ClosedHandCursor
+CURSOR_GRAB = Qt.CursorShape.OpenHandCursor
 
 
 class Canvas(QWidget):
@@ -79,7 +81,7 @@ class Canvas(QWidget):
         self.menus = (QMenu(), QMenu())
         # Set widget options.
         self.setMouseTracking(True)
-        self.setFocusPolicy(Qt.WheelFocus)
+        self.setFocusPolicy(Qt.FocusPolicy.WheelFocus)
         self.verified = False
         self.drawSquare = False
         self.fourpoint = True  # ADD
@@ -137,11 +139,12 @@ class Canvas(QWidget):
         pos = self.transformPos(ev.pos())
 
         # Update coordinates in status bar if image is opened
-        window = self.parent().window()
+        _parent: Optional[QtCore.QObject] = self.parent()
+        if _parent is None:
+            raise ValueError()
+        window = _parent.window()
         if window.filePath is not None:
-            self.parent().window().labelCoordinates.setText(
-                "X: %d; Y: %d" % (pos.x(), pos.y())
-            )
+            window.labelCoordinates.setText("X: %d; Y: %d" % (pos.x(), pos.y()))
 
         # Polygon drawing.
         if self.drawing():
@@ -193,7 +196,7 @@ class Canvas(QWidget):
             return
 
         # Polygon copy moving.
-        if Qt.RightButton & ev.buttons():
+        if Qt.MouseButton.RightButton & ev.buttons():
             if self.selectedShapesCopy and self.prevPoint:
                 self.overrideCursor(CURSOR_MOVE)
                 self.boundedMoveShape(self.selectedShapesCopy, pos)
@@ -204,7 +207,7 @@ class Canvas(QWidget):
             return
 
         # Polygon/Vertex moving.
-        if Qt.LeftButton & ev.buttons():
+        if Qt.MouseButton.LeftButton & ev.buttons():
             if self.selectedVertex():
                 self.boundedMoveVertex(pos)
                 self.shapeMoved.emit()
@@ -262,7 +265,7 @@ class Canvas(QWidget):
 
     def mousePressEvent(self, ev):
         pos = self.transformPos(ev.pos())
-        if ev.button() == Qt.LeftButton:
+        if ev.button() == Qt.MouseButton.LeftButton:
             if self.drawing():
                 # self.handleDrawing(pos) # OLD
                 if self.current:
@@ -288,19 +291,19 @@ class Canvas(QWidget):
                     self.update()
 
             else:
-                group_mode = int(ev.modifiers()) == Qt.ControlModifier
+                group_mode = int(ev.modifiers()) == Qt.KeyboardModifier.ControlModifier
                 self.selectShapePoint(pos, multiple_selection_mode=group_mode)
                 self.prevPoint = pos
                 self.pan_initial_pos = pos
 
-        elif ev.button() == Qt.RightButton and self.editing():
-            group_mode = int(ev.modifiers()) == Qt.ControlModifier
+        elif ev.button() == Qt.MouseButton.RightButton and self.editing():
+            group_mode = int(ev.modifiers()) == Qt.KeyboardModifier.ControlModifier
             self.selectShapePoint(pos, multiple_selection_mode=group_mode)
             self.prevPoint = pos
         self.update()
 
     def mouseReleaseEvent(self, ev):
-        if ev.button() == Qt.RightButton:
+        if ev.button() == Qt.MouseButton.RightButton:
             menu = self.menus[bool(self.selectedShapesCopy)]
             self.restoreCursor()
             if not menu.exec_(self.mapToGlobal(ev.pos())) and self.selectedShapesCopy:
@@ -309,13 +312,13 @@ class Canvas(QWidget):
                 self.selectedShapesCopy = []
                 self.repaint()
 
-        elif ev.button() == Qt.LeftButton and self.selectedShapes:
+        elif ev.button() == Qt.MouseButton.LeftButton and self.selectedShapes:
             if self.selectedVertex():
                 self.overrideCursor(CURSOR_POINT)
             else:
                 self.overrideCursor(CURSOR_GRAB)
 
-        elif ev.button() == Qt.LeftButton and not self.fourpoint:
+        elif ev.button() == Qt.MouseButton.LeftButton and not self.fourpoint:
             pos = self.transformPos(ev.pos())
             if self.drawing():
                 self.handleDrawing(pos)
@@ -442,7 +445,10 @@ class Canvas(QWidget):
         Moves a point x,y to within the boundaries of the canvas.
         :return: (x,y,snapped) where snapped is True if x or y were changed, False if not.
         """
-        if x < 0 or x > self.pixmap.width() or y < 0 or y > self.pixmap.height():
+        _pixmap: Optional[QPixmap] = self.pixmap
+        if _pixmap is None:
+            raise ValueError("_pixmap")
+        if x < 0 or x > _pixmap.width() or y < 0 or y > self.pixmap.height():
             x = max(x, 0)
             y = max(y, 0)
             x = min(x, self.pixmap.width())
@@ -671,14 +677,20 @@ class Canvas(QWidget):
     def offsetToCenter(self):
         s = self.scale
         area = super(Canvas, self).size()
-        w, h = self.pixmap.width() * s, self.pixmap.height() * s
+        _pixmap: Optional[QPixmap] = self.pixmap
+        if _pixmap is None:
+            raise ValueError("_pixmap")
+        w, h = _pixmap.width() * s, _pixmap.height() * s
         aw, ah = area.width(), area.height()
         x = (aw - w) / (2 * s) if aw > w else 0
         y = (ah - h) / (2 * s) if ah > h else 0
         return QPointF(x, y)
 
     def outOfPixmap(self, p):
-        w, h = self.pixmap.width(), self.pixmap.height()
+        _pixmap: Optional[QPixmap] = self.pixmap
+        if _pixmap is None:
+            raise ValueError("_pixmap")
+        w, h = _pixmap.width(), _pixmap.height()
         return not (0 <= p.x() <= w and 0 <= p.y() <= h)
 
     def finalise(self):
@@ -873,7 +885,7 @@ class Canvas(QWidget):
         self.shapes = []
         self.repaint()
 
-    def loadShapes(self, shapes, replace=True):
+    def loadShapes(self, shapes: Iterable[Shape], replace=True):
         if replace:
             self.shapes = list(shapes)
         else:

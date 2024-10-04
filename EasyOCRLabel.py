@@ -5,6 +5,7 @@ import os.path
 import platform
 import subprocess
 import sys
+from typing import List, Optional
 import xlrd
 from functools import partial
 import cv2
@@ -24,6 +25,7 @@ from PyQt5.QtGui import QImage, QCursor, QPixmap, QImageReader
 from PyQt5.QtWidgets import (
     QMainWindow,
     QListWidget,
+    QScrollBar,
     QVBoxLayout,
     QToolButton,
     QHBoxLayout,
@@ -61,6 +63,13 @@ from libs.utils import (
     boxPad,
     QIcon,
     natural_sort,
+    QAction,
+    stepsInfo,
+    keysInfo,
+    have_qstring,
+    struct,
+)
+from libs.constants import (
     SETTING_LAST_OPEN_DIR,
     SETTING_SAVE_DIR,
     SETTING_ADVANCE_MODE,
@@ -73,11 +82,6 @@ from libs.utils import (
     SETTING_FILENAME,
     SETTING_PAINT_LABEL,
     SETTING_PAINT_INDEX,
-    QAction,
-    stepsInfo,
-    keysInfo,
-    have_qstring,
-    struct,
 )
 from libs.labelColor import label_colormap
 from libs.settings import Settings
@@ -115,7 +119,7 @@ class MainWindow(QMainWindow):
     ):
         super(MainWindow, self).__init__()
         self.setWindowTitle(__appname__)
-        self.setWindowState(Qt.WindowMaximized)  # set window max
+        self.setWindowState(Qt.WindowState.WindowMaximized)  # set window max
         self.activateWindow()  # EasyOCRLabel goes to the front when activate
 
         # Load setting in the main thread
@@ -206,14 +210,14 @@ class MainWindow(QMainWindow):
         self.fileDock = QDockWidget(self.fileListName, self)
         self.fileDock.setObjectName(getStr("files"))
         self.fileDock.setWidget(fileListContainer)
-        self.addDockWidget(Qt.LeftDockWidgetArea, self.fileDock)
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.fileDock)
 
         #  ================== Key List  ==================
         if self.kie_mode:
             self.keyList = UniqueLabelQListWidget()
 
             # set key list height
-            key_list_height = int(QApplication.desktop().height() // 4)
+            key_list_height = int(QApplication.desktop().height() // 4) # type: ignore
             if key_list_height < 50:
                 key_list_height = 50
             self.keyList.setMaximumHeight(key_list_height)
@@ -225,7 +229,9 @@ class MainWindow(QMainWindow):
             filelistLayout.addWidget(self.keyListDock)
 
         self.AutoRecognition = QToolButton()
-        self.AutoRecognition.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.AutoRecognition.setToolButtonStyle(
+            Qt.ToolButtonStyle.ToolButtonTextBesideIcon
+        )
         self.AutoRecognition.setIcon(newIcon("Auto"))
         autoRecLayout = QHBoxLayout()
         autoRecLayout.setContentsMargins(0, 0, 0, 0)
@@ -242,20 +248,26 @@ class MainWindow(QMainWindow):
         self.editButton = QToolButton()
         self.reRecogButton = QToolButton()
         self.reRecogButton.setIcon(newIcon("reRec", 30))
-        self.reRecogButton.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.reRecogButton.setToolButtonStyle(
+            Qt.ToolButtonStyle.ToolButtonTextBesideIcon
+        )
 
         self.tableRecButton = QToolButton()
-        self.tableRecButton.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.tableRecButton.setToolButtonStyle(
+            Qt.ToolButtonStyle.ToolButtonTextBesideIcon
+        )
 
         self.newButton = QToolButton()
-        self.newButton.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.newButton.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         self.createpolyButton = QToolButton()
-        self.createpolyButton.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.createpolyButton.setToolButtonStyle(
+            Qt.ToolButtonStyle.ToolButtonTextBesideIcon
+        )
 
         self.SaveButton = QToolButton()
-        self.SaveButton.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.SaveButton.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         self.DelButton = QToolButton()
-        self.DelButton.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.DelButton.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
 
         leftTopToolBox = QGridLayout()
         leftTopToolBox.addWidget(self.newButton, 0, 0, 1, 1)
@@ -276,7 +288,7 @@ class MainWindow(QMainWindow):
         self.indexList.setEditTriggers(QAbstractItemView.NoEditTriggers)  # no editable
         self.indexList.itemSelectionChanged.connect(self.indexSelectionChanged)
         self.indexList.setVerticalScrollBarPolicy(
-            Qt.ScrollBarAlwaysOff
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
         )  # no scroll Bar
         self.indexListDock = QDockWidget("No.", self)
         self.indexListDock.setWidget(self.indexList)
@@ -308,13 +320,15 @@ class MainWindow(QMainWindow):
         # 启用拖拽
         self.labelList.setDragEnabled(True)
         # 设置接受拖放
-        self.labelList.viewport().setAcceptDrops(True)
+        if self.labelList.viewport() is not None:
+            self.labelList.viewport().setAcceptDrops(True)  # type: ignore
         # 设置显示将要被放置的位置
         self.labelList.setDropIndicatorShown(True)
         # 设置拖放模式为移动项目，如果不设置，默认为复制项目
         self.labelList.setDragDropMode(QAbstractItemView.InternalMove)
         # 触发放置
-        self.labelList.model().rowsMoved.connect(self.drag_drop_happened)
+        if self.labelList.model() is not None:
+            self.labelList.model().rowsMoved.connect(self.drag_drop_happened)  # type: ignore
 
         labelIndexListContainer = QWidget()
         labelIndexListContainer.setLayout(labelIndexListlBox)
@@ -324,8 +338,10 @@ class MainWindow(QMainWindow):
         self.labelListBar = self.labelList.verticalScrollBar()
         self.indexListBar = self.indexList.verticalScrollBar()
 
-        self.labelListBar.valueChanged.connect(self.move_scrollbar)
-        self.indexListBar.valueChanged.connect(self.move_scrollbar)
+        if self.labelListBar is not None:
+            self.labelListBar.valueChanged.connect(self.move_scrollbar)
+        if self.indexListBar is not None:
+            self.indexListBar.valueChanged.connect(self.move_scrollbar)
 
         #  ================== Detection Box  ==================
         self.BoxList = QListWidget()
@@ -354,7 +370,7 @@ class MainWindow(QMainWindow):
         self.dock.setWidget(labelListContainer)
 
         #  ================== Zoom Bar  ==================
-        self.imageSlider = QSlider(Qt.Horizontal)
+        self.imageSlider = QSlider(Qt.Orientation.Horizontal)
         self.imageSlider.valueChanged.connect(self.CanvasSizeChange)
         self.imageSlider.setMinimum(-9)
         self.imageSlider.setMaximum(510)
@@ -371,8 +387,8 @@ class MainWindow(QMainWindow):
         self.imageSliderDock.setObjectName(getStr("IR"))
         self.imageSliderDock.setWidget(self.imageSlider)
         self.imageSliderDock.setFeatures(QDockWidget.DockWidgetFloatable)
-        self.imageSliderDock.setAttribute(Qt.WA_TranslucentBackground)
-        self.addDockWidget(Qt.RightDockWidgetArea, self.imageSliderDock)
+        self.imageSliderDock.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.imageSliderDock)
 
         self.zoomWidget = ZoomWidget()
         self.colorDialog = ColorDialog(parent=self)
@@ -402,7 +418,9 @@ class MainWindow(QMainWindow):
         self.iconlist.setStyleSheet(
             "QListWidget{ background-color:transparent; border: none;}"
         )
-        self.iconlist.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.iconlist.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
         self.nextButton = QToolButton()
         self.nextButton.setIcon(newIcon("next", 40))
         self.nextButton.setIconSize(QSize(40, 100))
@@ -427,8 +445,8 @@ class MainWindow(QMainWindow):
         scroll.setWidget(self.canvas)
         scroll.setWidgetResizable(True)
         self.scrollBars = {
-            Qt.Vertical: scroll.verticalScrollBar(),
-            Qt.Horizontal: scroll.horizontalScrollBar(),
+            Qt.Orientation.Vertical: scroll.verticalScrollBar(),
+            Qt.Orientation.Horizontal: scroll.horizontalScrollBar(),
         }
         self.scrollArea = scroll
         self.canvas.scrollRequest.connect(self.scrollRequest)
@@ -441,12 +459,12 @@ class MainWindow(QMainWindow):
         centerLayout = QVBoxLayout()
         centerLayout.setContentsMargins(0, 0, 0, 0)
         centerLayout.addWidget(scroll)
-        centerLayout.addWidget(iconListContainer, 0, Qt.AlignCenter)
+        centerLayout.addWidget(iconListContainer, 0, Qt.AlignmentFlag.AlignCenter)
         centerContainer = QWidget()
         centerContainer.setLayout(centerLayout)
 
         self.setCentralWidget(centerContainer)
-        self.addDockWidget(Qt.RightDockWidgetArea, self.dock)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.dock)
 
         self.dock.setFeatures(
             QDockWidget.DockWidgetClosable | QDockWidget.DockWidgetFloatable
@@ -812,13 +830,19 @@ class MainWindow(QMainWindow):
         zoomLayout = QHBoxLayout()
         zoomLayout.addStretch()
         self.zoominButton = QToolButton()
-        self.zoominButton.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.zoominButton.setToolButtonStyle(
+            Qt.ToolButtonStyle.ToolButtonTextBesideIcon
+        )
         self.zoominButton.setDefaultAction(zoomIn)
         self.zoomoutButton = QToolButton()
-        self.zoomoutButton.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.zoomoutButton.setToolButtonStyle(
+            Qt.ToolButtonStyle.ToolButtonTextBesideIcon
+        )
         self.zoomoutButton.setDefaultAction(zoomOut)
         self.zoomorgButton = QToolButton()
-        self.zoomorgButton.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.zoomorgButton.setToolButtonStyle(
+            Qt.ToolButtonStyle.ToolButtonTextBesideIcon
+        )
         self.zoomorgButton.setDefaultAction(zoomOrg)
         zoomLayout.addWidget(self.zoominButton)
         zoomLayout.addWidget(self.zoomorgButton)
@@ -847,13 +871,13 @@ class MainWindow(QMainWindow):
         labelMenu = QMenu()
         addActions(labelMenu, (edit, delete))
 
-        self.labelList.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.labelList.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.labelList.customContextMenuRequested.connect(self.popLabelListMenu)
 
         # Draw squares/rectangles
         self.drawSquaresOption = QAction(getStr("drawSquares"), self)
         self.drawSquaresOption.setCheckable(True)
-        self.drawSquaresOption.setChecked(settings.get(SETTING_DRAW_SQUARE, False))
+        self.drawSquaresOption.setChecked(settings.get(SETTING_DRAW_SQUARE, False)) # type: ignore
         self.drawSquaresOption.triggered.connect(self.toogleDrawSquare)
 
         # Store actions for further handling.
@@ -947,7 +971,7 @@ class MainWindow(QMainWindow):
             ),
             onLoadActive=(create, createpoly, createMode, editMode),
             onShapesPresent=(hideAll, showAll),
-        )
+        ) # type: ignore
 
         # menus
         self.menus = struct(
@@ -965,30 +989,30 @@ class MainWindow(QMainWindow):
         self.displayLabelOption = QAction(getStr("displayLabel"), self)
         self.displayLabelOption.setShortcut("Ctrl+Shift+P")
         self.displayLabelOption.setCheckable(True)
-        self.displayLabelOption.setChecked(settings.get(SETTING_PAINT_LABEL, False))
+        self.displayLabelOption.setChecked(settings.get(SETTING_PAINT_LABEL, False)) # type: ignore
         self.displayLabelOption.triggered.connect(self.togglePaintLabelsOption)
 
         # Add option to enable/disable box index being displayed at the top of bounding boxes
         self.displayIndexOption = QAction(getStr("displayIndex"), self)
         self.displayIndexOption.setCheckable(True)
-        self.displayIndexOption.setChecked(settings.get(SETTING_PAINT_INDEX, False))
+        self.displayIndexOption.setChecked(settings.get(SETTING_PAINT_INDEX, False)) # type: ignore
         self.displayIndexOption.triggered.connect(self.togglePaintIndexOption)
 
         self.labelDialogOption = QAction(getStr("labelDialogOption"), self)
         self.labelDialogOption.setShortcut("Ctrl+Shift+L")
         self.labelDialogOption.setCheckable(True)
-        self.labelDialogOption.setChecked(settings.get(SETTING_PAINT_LABEL, False))
-        self.displayIndexOption.setChecked(settings.get(SETTING_PAINT_INDEX, False))
+        self.labelDialogOption.setChecked(settings.get(SETTING_PAINT_LABEL, False)) # type: ignore
+        self.displayIndexOption.setChecked(settings.get(SETTING_PAINT_INDEX, False)) # type: ignore
         self.labelDialogOption.triggered.connect(self.speedChoose)
 
         self.autoSaveOption = QAction(getStr("autoSaveMode"), self)
         self.autoSaveOption.setCheckable(True)
-        self.autoSaveOption.setChecked(settings.get(SETTING_PAINT_LABEL, False))
-        self.displayIndexOption.setChecked(settings.get(SETTING_PAINT_INDEX, False))
+        self.autoSaveOption.setChecked(settings.get(SETTING_PAINT_LABEL, False)) # type: ignore
+        self.displayIndexOption.setChecked(settings.get(SETTING_PAINT_INDEX, False)) # type: ignore
         self.autoSaveOption.triggered.connect(self.autoSaveFunc)
 
         addActions(
-            self.menus.file,
+            self.menus.file, # type: ignore
             (
                 opendir,
                 open_dataset_dir,
@@ -1004,9 +1028,9 @@ class MainWindow(QMainWindow):
             ),
         )
 
-        addActions(self.menus.help, (showKeys, showSteps, showInfo))
+        addActions(self.menus.help, (showKeys, showSteps, showInfo)) # type: ignore
         addActions(
-            self.menus.view,
+            self.menus.view, # type: ignore
             (
                 self.displayLabelOption,
                 self.displayIndexOption,
@@ -1024,15 +1048,15 @@ class MainWindow(QMainWindow):
             ),
         )
 
-        addActions(self.menus.autolabel, (AutoRec, reRec, cellreRec, alcm, None, help))
+        addActions(self.menus.autolabel, (AutoRec, reRec, cellreRec, alcm, None, help)) # type: ignore
 
-        self.menus.file.aboutToShow.connect(self.updateFileMenu)
+        self.menus.file.aboutToShow.connect(self.updateFileMenu) # type: ignore
 
         # Custom context menu for the canvas widget:
         addActions(self.canvas.menus[0], self.actions.beginnerContext)
 
-        self.statusBar().showMessage("%s started." % __appname__)
-        self.statusBar().show()
+        self.statusBar().showMessage("%s started." % __appname__) # type: ignore
+        self.statusBar().show() # type: ignore
 
         # Application state.
         self.image = QImage()
@@ -1051,7 +1075,7 @@ class MainWindow(QMainWindow):
         if settings.get(SETTING_RECENT_FILES):
             if have_qstring():
                 recentFileQStringList = settings.get(SETTING_RECENT_FILES)
-                self.recentFiles = [ustr(i) for i in recentFileQStringList]
+                self.recentFiles = [ustr(i) for i in recentFileQStringList] # type: ignore
             else:
                 self.recentFiles = recentFileQStringList = settings.get(
                     SETTING_RECENT_FILES
@@ -1062,16 +1086,16 @@ class MainWindow(QMainWindow):
         position = QPoint(0, 0)
         saved_position = settings.get(SETTING_WIN_POSE, position)
         # Fix the multiple monitors issue
-        for i in range(QApplication.desktop().screenCount()):
-            if QApplication.desktop().availableGeometry(i).contains(saved_position):
+        for i in range(QApplication.desktop().screenCount()): # type: ignore
+            if QApplication.desktop().availableGeometry(i).contains(saved_position): # type: ignore
                 position = saved_position
                 break
-        self.resize(size)
+        self.resize(size) # type: ignore
         self.move(position)
         saveDir = ustr(settings.get(SETTING_SAVE_DIR, None))  # noqa: F841
         self.lastOpenDir = ustr(settings.get(SETTING_LAST_OPEN_DIR, None))
 
-        self.restoreState(settings.get(SETTING_WIN_STATE, QByteArray()))
+        self.restoreState(settings.get(SETTING_WIN_STATE, QByteArray())) # type: ignore
         Shape.line_color = self.lineColor = QColor(
             settings.get(SETTING_LINE_COLOR, DEFAULT_LINE_COLOR)
         )
@@ -1080,7 +1104,7 @@ class MainWindow(QMainWindow):
         )
         self.canvas.setDrawingColor(self.lineColor)
         # Add chris
-        Shape.difficult = self.difficult
+        Shape.difficult = self.difficult # type: ignore
 
         # ADD:
         # Populate the File menu dynamically.
@@ -1466,9 +1490,10 @@ class MainWindow(QMainWindow):
 
         if self.kie_mode:
             if len(self.canvas.selectedShapes) == 1 and self.keyList.count() > 0:
-                selected_key_item_row = self.keyList.findItemsByLabel(
-                    self.canvas.selectedShapes[0].key_cls, get_row=True
+                selected_key_item_row = self.keyList.findRowIndexByLabel(
+                    self.canvas.selectedShapes[0].key_cls
                 )
+
                 if (
                     isinstance(selected_key_item_row, list)
                     and len(selected_key_item_row) == 0
@@ -1478,11 +1503,13 @@ class MainWindow(QMainWindow):
                     self.keyList.addItem(item)
                     rgb = self._get_rgb_by_label(key_text, self.kie_mode)
                     self.keyList.setItemLabel(item, key_text, rgb)
-                    selected_key_item_row = self.keyList.findItemsByLabel(
-                        self.canvas.selectedShapes[0].key_cls, get_row=True
+                    row_index = self.keyList.findRowIndexByLabel(
+                        self.canvas.selectedShapes[0].key_cls
                     )
+                    if row_index is not None:
+                        selected_key_item_row_index: int = row_index
 
-                self.keyList.setCurrentRow(selected_key_item_row)
+                self.keyList.setCurrentRow(selected_key_item_row_index)
 
         self._noSelectionSlot = False
         n_selected = len(selected_shapes)
@@ -1509,7 +1536,7 @@ class MainWindow(QMainWindow):
         self.shapesToItems[shape] = item
         # add current label item index before label string
         current_index = QListWidgetItem(str(self.labelList.count()))
-        current_index.setTextAlignment(Qt.AlignHCenter)
+        current_index.setTextAlignment(Qt.AlignmentFlag.AlignHCenter)
         self.indexList.addItem(current_index)
         self.labelList.addItem(item)
         # print('item in add label is ',[(p.x(), p.y()) for p in shape.points], shape.label)
@@ -1593,8 +1620,13 @@ class MainWindow(QMainWindow):
 
     def updateComboBox(self):
         # Get the unique labels and add them to the Combobox.
+
+        def get_item(label_list, i) -> str:
+            assert label_list is not None
+            return str(label_list.item(i).text())
+
         itemsTextList = [
-            str(self.labelList.item(i).text()) for i in range(self.labelList.count())
+            get_item(self.labelList, i) for i in range(self.labelList.count())
         ]
 
         uniqueTextList = list(set(itemsTextList))
@@ -1608,7 +1640,7 @@ class MainWindow(QMainWindow):
         self.indexList.clear()
         for i in range(self.labelList.count()):
             string = QListWidgetItem(str(i))
-            string.setTextAlignment(Qt.AlignHCenter)
+            string.setTextAlignment(Qt.AlignmentFlag.AlignHCenter)
             self.indexList.addItem(string)
 
     def saveLabels(self, annotationFilePath, mode="Auto"):
@@ -1677,8 +1709,12 @@ class MainWindow(QMainWindow):
         # self.shapeSelectionChanged(True)
 
     def move_scrollbar(self, value):
-        self.labelListBar.setValue(value)
-        self.indexListBar.setValue(value)
+        label_list_bar: Optional[QScrollBar] = self.labelListBar
+        assert label_list_bar is not None
+        label_list_bar.setValue(value)
+        index_list_bar: Optional[QScrollBar] = self.indexListBar
+        assert index_list_bar is not None
+        index_list_bar.setValue(value)
 
     def labelSelectionChanged(self):
         if self._noSelectionSlot:
@@ -1730,8 +1766,12 @@ class MainWindow(QMainWindow):
                 shape.label = item.text()
                 # shape.line_color = generateColorByText(shape.label)
                 self.setDirty()
-            elif not ((item.checkState() == Qt.Unchecked) ^ (not shape.difficult)):
-                shape.difficult = True if item.checkState() == Qt.Unchecked else False
+            elif not (
+                (item.checkState() == Qt.CheckState.Unchecked) ^ (not shape.difficult)
+            ):
+                shape.difficult = (
+                    True if item.checkState() == Qt.CheckState.Unchecked else False
+                )
                 self.setDirty()
             else:  # User probably changed item visibility
                 self.canvas.setShapeVisible(
@@ -1757,7 +1797,7 @@ class MainWindow(QMainWindow):
         for shape in self.canvas.selectedShapes:
             selectedShapeIndex = shape.idx
 
-        if newIndex == selectedShapeIndex:
+        if newIndex == selectedShapeIndex:  # type: ignore
             return
 
         # move corresponding item in shape list
@@ -1796,7 +1836,9 @@ class MainWindow(QMainWindow):
                 text, None, None, None
             )  # generate_color, generate_color
             if self.kie_mode:
-                key_text, _ = self.keyDialog.popUp(self.key_previous_text)
+                assert self.keyDialog is not None
+                assert self.key_previous_text is not None
+                key_text, _ = self.keyDialog.popUp(self.key_previous_text)  # type: ignore
                 if key_text is not None:
                     shape = self.canvas.setLastLabel(
                         text, None, None, key_text
@@ -1838,7 +1880,9 @@ class MainWindow(QMainWindow):
     def _get_rgb_by_label(self, label, kie_mode):
         shift_auto_shape_color = 2  # use for random color
         if kie_mode and label != "None":
-            item = self.keyList.findItemsByLabel(label)[0]
+            assert self.keyList is not None
+            items_ = self.keyList.findItemsByLabel(label)
+            item = items_[0] if isinstance(items_, List) else items_
             label_id = self.keyList.indexFromItem(item).row() + 1
             label_id += shift_auto_shape_color
             return LABEL_COLORMAP[label_id % len(LABEL_COLORMAP)]
@@ -2634,7 +2678,9 @@ class MainWindow(QMainWindow):
             if len(pfilename) < 10:
                 lentoken = 12 - len(pfilename)
                 prelen = lentoken // 2
-                bfilename = prelen * " " + pfilename + (lentoken - prelen) * " "  # noqa: F841
+                bfilename = (
+                    prelen * " " + pfilename + (lentoken - prelen) * " "
+                )  # noqa: F841
             # item = QListWidgetItem(QIcon(pix.scaled(100, 100, Qt.KeepAspectRatio, Qt.SmoothTransformation)),filename[:10])
             item = QListWidgetItem(
                 QIcon(
