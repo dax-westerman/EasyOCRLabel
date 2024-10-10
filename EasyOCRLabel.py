@@ -5,7 +5,7 @@ import os.path
 import platform
 import subprocess
 import sys
-from typing import List, Optional
+from typing import List, Optional, cast
 import xlrd
 from functools import partial
 import cv2
@@ -1891,8 +1891,8 @@ class MainWindow(QMainWindow):
 
     def scrollRequest(self, delta, orientation):
         units = -delta / (8 * 15)
-        bar = self.scrollBars[orientation]
-        bar.setValue(bar.value() + bar.singleStep() * units)
+        bar: QScrollBar = cast(QScrollBar, self.scrollBars[orientation])
+        bar.setValue(bar.value() + round(bar.singleStep() * units))
 
     def setZoom(self, value):
         self.actions.fitWidth.setChecked(False)

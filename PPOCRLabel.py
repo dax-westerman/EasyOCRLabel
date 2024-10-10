@@ -6,7 +6,7 @@ import platform
 import subprocess
 import sys
 from functools import partial
-from typing import Optional
+from typing import Optional, cast
 
 import cv2
 import easyocr
@@ -28,6 +28,7 @@ from PyQt5.QtWidgets import (
     QAbstractItemView,
     QApplication,
     QComboBox,
+    QDesktopWidget,
     QDialog,
     QDockWidget,
     QFileDialog,
@@ -226,7 +227,8 @@ class MainWindow(QMainWindow):
             self.keyList = UniqueLabelQListWidget()
 
             # set key list height
-            key_list_height = int(QApplication.desktop().height() // 4)
+            desktop_widget = cast(QDesktopWidget, QApplication.desktop())
+            key_list_height = int(desktop_widget.height() // 4)
             if key_list_height < 50:
                 key_list_height = 50
             self.keyList.setMaximumHeight(key_list_height)
@@ -1880,8 +1882,8 @@ class MainWindow(QMainWindow):
 
     def scrollRequest(self, delta, orientation):
         units = -delta / (8 * 15)
-        bar = self.scrollBars[orientation]
-        bar.setValue(bar.value() + bar.singleStep() * units)
+        bar: QScrollBar = cast(QScrollBar, self.scrollBars[orientation])
+        bar.setValue(bar.value() + round(bar.singleStep() * units))
 
     def setZoom(self, value):
         self.actions.fitWidth.setChecked(False)
@@ -1898,8 +1900,8 @@ class MainWindow(QMainWindow):
     def zoomRequest(self, delta):
         # get the current scrollbar positions
         # calculate the percentages ~ coordinates
-        h_bar = self.scrollBars[Qt.Horizontal]
-        v_bar = self.scrollBars[Qt.Vertical]
+        h_bar: QScrollBar = cast(QScrollBar, self.scrollBars[Qt.Horizontal])
+        v_bar: QScrollBar = cast(QScrollBar, self.scrollBars[Qt.Vertical])
 
         # get the current maximum, to know the difference after zooming
         h_bar_max = h_bar.maximum()
@@ -1931,7 +1933,7 @@ class MainWindow(QMainWindow):
         move_y = min(max(move_y, 0), 1)
 
         # zoom in
-        units = delta / (8 * 15)
+        units: int = round(delta / (8 * 15))
         scale = 10
         self.addZoom(scale * units)
 
@@ -1941,8 +1943,8 @@ class MainWindow(QMainWindow):
         d_v_bar_max = v_bar.maximum() - v_bar_max
 
         # get the new scrollbar values
-        new_h_bar_value = h_bar.value() + move_x * d_h_bar_max
-        new_v_bar_value = v_bar.value() + move_y * d_v_bar_max
+        new_h_bar_value: int = round(h_bar.value() + move_x * d_h_bar_max)
+        new_v_bar_value: int = round(v_bar.value() + move_y * d_v_bar_max)
 
         h_bar.setValue(new_h_bar_value)
         v_bar.setValue(new_v_bar_value)

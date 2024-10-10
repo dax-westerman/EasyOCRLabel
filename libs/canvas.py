@@ -617,7 +617,7 @@ class Canvas(QWidget):
             p.setPen(self.drawingRectColor)
             brush = QBrush(Qt.BDiagPattern)
             p.setBrush(brush)
-            p.drawRect(leftTop.x(), leftTop.y(), rectWidth, rectHeight)
+            p.drawRect(round(leftTop.x()), round(leftTop.y()), round(rectWidth), round(rectHeight))
 
         # ADD：
         if (
