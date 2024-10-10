@@ -9,7 +9,6 @@ colorama==0.4.6
 contourpy==1.3.0
 cycler==0.12.1
 decorator==5.1.1
-docx==0.2.4
 easyocr @ git+https://github.com/JaidedAI/EasyOCR.git@c4f3cd7225efd4f85451bd8b4a7646ae9a092420
 eval_type_backport==0.2.0
 filelock==3.16.1
@@ -48,6 +47,7 @@ PyQt5-Qt5==5.15.2
 PyQt5_sip==12.15.0
 python-bidi==0.6.0
 python-dateutil==2.9.0.post0
+python-docx==1.1.2
 PyYAML==6.0.2
 requests==2.32.3
 scikit-image==0.24.0
