@@ -10,6 +10,7 @@ import xlrd
 from functools import partial
 import cv2
 import numpy as np
+# from paddleocr import PPStructure
 
 from PyQt5.QtCore import (
     QSize,
@@ -146,11 +147,12 @@ class MainWindow(QMainWindow):
 
         self.defaultSaveDir = default_save_dir
         self.ocr = easyocr.Reader(["en"])
-        # self.table_ocr = PPStructure(use_pdserving=False,
-        #                              use_gpu=gpu,
-        #                              lang=lang,
-        #                              layout=False,
-        #                              show_log=False)
+        
+        self.table_ocr = PPStructure(use_pdserving=False,
+                                     use_gpu=gpu,
+                                     lang=lang,
+                                     layout=False,
+                                     show_log=False)
 
         if os.path.exists("./data/paddle.png"):
             result = self.ocr.readtext("./data/paddle.png")  # noqa
@@ -3196,12 +3198,13 @@ class MainWindow(QMainWindow):
         del self.ocr
         self.ocr = easyocr.Reader(["en"])
 
-        # del self.table_ocr
-        # self.table_ocr = PPStructure(use_pdserving=False,
-        #                              use_gpu=False,
-        #                              lang=lg_idx[self.comboBox.currentText()],
-        #                              layout=False,
-        #                              show_log=False)
+        if self.table_ocr:
+            del self.table_ocr
+        self.table_ocr = PPStructure(use_pdserving=False,
+                                     use_gpu=False,
+                                     lang=lg_idx[self.comboBox.currentText()],
+                                     layout=False,
+                                     show_log=False)
         self.dialog.close()
 
     def cancel(self):

@@ -7,6 +7,7 @@ import subprocess
 import sys
 from functools import partial
 from typing import Optional, cast
+# from paddleocr import PPStructure
 
 import cv2
 import easyocr
@@ -137,6 +138,7 @@ class MainWindow(QMainWindow):
         self.settings.load()
         settings = self.settings
         self.lang = lang
+        self.table_ocr = None
 
         # Load string bundle for i18n
         if lang not in ["ch_sim", "en"]:
@@ -331,7 +333,8 @@ class MainWindow(QMainWindow):
         # 启用拖拽
         self.labelList.setDragEnabled(True)
         # 设置接受拖放
-        self.labelList.viewport().setAcceptDrops(True)
+        view_port: QWidget = cast(QWidget, self.labelList.viewport())
+        view_port.setAcceptDrops(True)
         # 设置显示将要被放置的位置
         self.labelList.setDropIndicatorShown(True)
         # 设置拖放模式为移动项目，如果不设置，默认为复制项目
@@ -3181,8 +3184,11 @@ class MainWindow(QMainWindow):
         lg_idx = {"Chinese & English": "ch_sim", "English": "en"}
         del self.ocr
         self.ocr = easyocr.Reader(["en"])
+        
+        # from paddleocr import PPStructure
 
-        # del self.table_ocr
+        # if self.table_ocr:
+        #     del self.table_ocr
         # self.table_ocr = PPStructure(use_pdserving=False,
         #                              use_gpu=False,
         #                              lang=lg_idx[self.comboBox.currentText()],
